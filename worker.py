@@ -4,9 +4,9 @@ from worker.transcribe_youtube import transcribe_youtube
 
 @click.group()
 def cli():
-    pass
+  pass
 
 cli.add_command(transcribe_youtube)
 
 if __name__ == "__main__":
-    cli()
+  cli()

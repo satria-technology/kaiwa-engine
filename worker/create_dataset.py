@@ -1,48 +1,41 @@
 import json
-import click
 
-
-@click.command()
-@click.argument('transcript', type=click.File('r'))
-def create_dataset(transcript):
-  lines = transcript.read().splitlines()
-  
+def create_dataset(transcripts: list[str]):
   combinations = []
-  for answer in range(1, len(lines), 2):
+  for answer in range(1, len(transcripts), 2):
     next_question = answer+1
-    if next_question < len(lines):
+    if next_question < len(transcripts):
       combinations.append({
         "messages": [
           {"role": "system", "content": "You are learning buddy for JLPT N5 student. You are helping the student to learn conversation in Japanese."},
-          {"role": "user", "content": lines[answer]},
-          {"role": "assistant", "content": f"{lines[next_question]}"},
+          {"role": "user", "content": transcripts[answer]},
+          {"role": "assistant", "content": f"{transcripts[next_question]}"},
         ]
       })
   
-  for question in range(0, len(lines), 2):
+  for question in range(0, len(transcripts), 2):
     answer = question+1
     question_back = answer + 1
-    if question_back < len(lines):
+    if question_back < len(transcripts):
       combinations.append({
         "messages": [
           {"role": "system", "content": "You are learning buddy for JLPT N5 student. You are helping the student to learn conversation in Japanese."},
-          {"role": "user", "content": lines[question]},
-          {"role": "assistant", "content": f"{lines[answer]}\n{lines[question_back]}"},
+          {"role": "user", "content": transcripts[question]},
+          {"role": "assistant", "content": f"{transcripts[answer]}\n{transcripts[question_back]}"},
         ]
       })
     combinations.append({
       "messages": [
         {"role": "system", "content": "You are learning buddy for JLPT N5 student. You are helping the student to learn conversation in Japanese."},
-        {"role": "user", "content": lines[question]},
-        {"role": "assistant", "content": f"{lines[answer]}"},
+        {"role": "user", "content": transcripts[question]},
+        {"role": "assistant", "content": f"{transcripts[answer]}"},
       ]
     })
     combinations.append({
       "messages": [
         {"role": "system", "content": "You are learning buddy for JLPT N5 student. You are helping the student to learn conversation in Japanese."},
-        {"role": "user", "content": lines[question]},
-        {"role": "assistant", "content": f"{lines[answer]}\n{lines[question]}"},
+        {"role": "user", "content": transcripts[question]},
+        {"role": "assistant", "content": f"{transcripts[answer]}\n{transcripts[question]}"},
       ]
     })
-  for combination in combinations:
-    print(json.dumps(combination, ensure_ascii=False))
+  return combinations

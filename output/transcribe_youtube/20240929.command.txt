@@ -1,0 +1,1 @@
+python worker.py transcribe-youtube --urls "https://www.youtube.com/watch?v=tUij1fskbqg" --urls "https://www.youtube.com/watch?v=uRBPr8H1PZ4" --urls "https://www.youtube.com/watch?v=60gpJee9fKw" >> ./output/transcribe_youtube/20240929.txt

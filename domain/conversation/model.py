@@ -2,13 +2,16 @@ import datetime
 from pydantic import BaseModel
 
 
-class User(BaseModel):
+class Participant(BaseModel):
+    id: str
     phone_number: str
+    channel: str
     name: str
 
 
 class Message(BaseModel):
-    sender: User
-    receiver: User
+    id: str
+    sender: Participant
+    receiver: Participant
     message: str
     sent_at: datetime.datetime

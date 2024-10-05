@@ -1,7 +1,7 @@
 import click
-from app.worker.transcribe_youtube import transcribe_youtube
-from app.worker.improve_transcribe import improve_transcribe
-from app.worker.create_dataset import create_dataset
+from interfaces.worker.transcribe_youtube import transcribe_youtube
+from interfaces.worker.improve_transcribe import improve_transcribe
+from interfaces.worker.create_dataset import create_dataset
 
 
 @click.group()

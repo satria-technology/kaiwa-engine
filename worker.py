@@ -1,4 +1,4 @@
-from app.worker.cli import cli
+from interfaces.worker.cli import cli
 
 
 if __name__ == "__main__":

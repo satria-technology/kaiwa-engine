@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from domain.conversation.model import Message
+from domain.conversation.model import Message, Participant
 
 
 class ChatCompletionRepository(ABC):
@@ -10,6 +10,13 @@ class ChatCompletionRepository(ABC):
 
 
 class ChatRepository(ABC):
+    @abstractmethod
+    def create_participant(self, participant: Participant):
+        raise NotImplementedError
+    
+    def get_participant(self, participant: Participant):
+        raise NotImplementedError
+    
     @abstractmethod
     def save_outgoing_message(self, message: Message):
         raise NotImplementedError

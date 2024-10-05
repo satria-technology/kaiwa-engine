@@ -10,7 +10,7 @@ class ParticipantNotFoundError(Exception):
 
 class LargeLanguageModelRepository(ABC):
     @abstractmethod
-    def generate_text(self, messages: list[Message]) -> Message:
+    def generate_text(self, messages: list[Message]) -> str:
         raise NotImplementedError
 
 
@@ -24,11 +24,7 @@ class ChatRepository(ABC):
         raise NotImplementedError
     
     @abstractmethod
-    def save_outgoing_message(self, message: Message):
-        raise NotImplementedError
-
-    @abstractmethod
-    def save_incoming_message(self, message: Message):
+    def save_messages(self, messages: list[Message]):
         raise NotImplementedError
 
     @abstractmethod

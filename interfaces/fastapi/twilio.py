@@ -1,34 +1,39 @@
-import datetime
 from fastapi import APIRouter, Request, HTTPException, Response
-from pydantic import BaseModel
 from twilio.twiml.messaging_response import MessagingResponse
 from application.conversation import conversation_service
-from domain.conversation.model import Message, Participant
 import structlog
 
-from interfaces.fastapi.twilio_dto import WhatsappWebhookPayload, parse_request_to_whatsapp_webhook_payload
+from interfaces.fastapi.twilio_dto import WhatsappWebhookPayload
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/twilio",
+)
 log = structlog.get_logger()
 
 # https://www.twilio.com/docs/messaging/guides/webhook-request
 @router.post("/whatsapp-webhook")
 async def handle_whatsapp_webhook(request: Request):
-    form = await request.form()
     try:
-        payload = WhatsappWebhookPayload(
-            MessageSid=form["MessageSid"],
-            AccountSid=form["AccountSid"],
-            From=form["From"],
-            To=form["To"],
-            Body=form["Body"],
-        )
+        form = await request.form()
+        log.debug("Received form", form=form)
+        payload = WhatsappWebhookPayload(**form)
     except KeyError as e:
-        raise HTTPException(status_code=400, detail=f"Missing required field: {e}")
+        log.error("Missing required field", error=str(e), exc_info=True)
+        raise HTTPException(status_code=422, detail=f"Missing required field: {e}")
+    except ValueError as e:
+        log.error("Invalid value", error=str(e), exc_info=True)
+        raise HTTPException(status_code=422, detail=str(e))
+    except Exception as e:
+        log.error("Unknown error", error=str(e), exc_info=True)
+        raise HTTPException(status_code=400, detail=str(e))
 
     log.info("Received WhatsApp message", body=payload.Body)
 
-    response_message = conversation_service.respond_to_message(payload.to_message())
+    try:
+        response_message = conversation_service.respond_to_message(payload.to_message())
+    except Exception as e:
+        log.error("Error processing message", error=str(e))
+        raise HTTPException(status_code=500, detail="Error processing message")
 
     resp = MessagingResponse()
     resp.message(response_message.message)

@@ -8,36 +8,48 @@ class ConversationServiceImp(ConversationService):
     def __init__(
         self,
         chat_repository: repository.ChatRepository,
-        chat_completion_repository: repository.ChatCompletionRepository,
+        llm_repository: repository.LargeLanguageModelRepository,
     ):
         self.chat_repository = chat_repository
-        self.chat_completion_repository = chat_completion_repository
+        self.llm_repository = llm_repository
 
     def respond_to_message(self, message: Message) -> Message:
-        self.chat_repository.save_incoming_message(message)
-        response_message = Message(
-            sender=message.receiver,
-            receiver=message.sender,
-        )
         try:
-            response_message_body = self.chat_completion_repository.text_generation(
-                message.message
+            sender = self.chat_repository.get_participant(message.sender)
+        except repository.ParticipantNotFoundError as e:
+            sender = self.chat_repository.create_participant(message.sender)
+        except Exception as e:
+            raise e
+        finally:
+            if sender is not None: message.sender = sender
+
+        try:
+            receiver = self.chat_repository.get_participant(message.receiver)
+        except repository.ParticipantNotFoundError as e:
+            receiver = self.chat_repository.create_participant(message.receiver)
+        except Exception as e:
+            raise e
+        finally:
+            if receiver is not None: message.receiver = receiver
+
+        try:
+            context_messages = self.chat_repository.get_last_messages_to_participant(
+                message.sender, 10, datetime.datetime.now() - datetime.timedelta(hours=1)
             )
-            response_message = Message(
-                sender=message.receiver,
-                receiver=message.sender,
-                message=response_message_body,
-                sent_at=datetime.datetime.now(),
-            )
-            self.chat_repository.save_outgoing_message(response_message)
+            response_message = self.llm_repository.generate_text(context_messages)
+            response_message.receiver = message.sender
+            response_message.sender = message.receiver
+            response_message.sent_at = datetime.datetime.now()
+        except Exception as e:
+            raise e
+        
+        self.__persist_message(message, response_message)
+        return response_message
+
+    async def __persist_message(self, incoming: Message, outcoming: Message):
+        try:
+            self.chat_repository.save_incoming_message(incoming)
+            self.chat_repository.save_outgoing_message(outcoming)
         except Exception as e:
             print(e)
-        finally:
-            if response_message.message == "" or response_message.sent_at is None:
-                response_message = Message(
-                    sender=message.receiver,
-                    receiver=message.sender,
-                    message="We are sorry, but we are unable to respond to your message at the moment.",
-                    sent_at=datetime.datetime.now(),
-                )
-            return response_message
+        return

@@ -1,11 +1,16 @@
 from abc import ABC, abstractmethod
+import datetime
 
 from domain.conversation.model import Message, Participant
 
 
-class ChatCompletionRepository(ABC):
+class ParticipantNotFoundError(Exception):
+    def __init__(self):
+        super().__init__(f"Participant not found")
+
+class LargeLanguageModelRepository(ABC):
     @abstractmethod
-    def text_generation(self, text: str) -> str:
+    def generate_text(self, messages: list[Message]) -> Message:
         raise NotImplementedError
 
 
@@ -14,6 +19,7 @@ class ChatRepository(ABC):
     def create_participant(self, participant: Participant):
         raise NotImplementedError
     
+    @abstractmethod
     def get_participant(self, participant: Participant):
         raise NotImplementedError
     
@@ -25,5 +31,6 @@ class ChatRepository(ABC):
     def save_incoming_message(self, message: Message):
         raise NotImplementedError
 
-    def retrieve_last_messages(self, limit: int) -> list[Message]:
+    @abstractmethod
+    def get_last_messages_to_participant(self, participant: Participant, n: int, datetime: datetime.datetime) -> list[Message]:
         raise NotImplementedError

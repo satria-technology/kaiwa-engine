@@ -1,19 +1,15 @@
+import datetime
 from fastapi import APIRouter, Request, HTTPException, Response
 from pydantic import BaseModel
 from twilio.twiml.messaging_response import MessagingResponse
+from application.conversation import conversation_service
+from domain.conversation.model import Message, Participant
 import structlog
+
+from interfaces.fastapi.twilio_dto import WhatsappWebhookPayload, parse_request_to_whatsapp_webhook_payload
 
 router = APIRouter()
 log = structlog.get_logger()
-
-
-class WhatsappWebhookPayload(BaseModel):
-    MessageSid: str
-    AccountSid: str
-    From: str
-    To: str
-    Body: str
-
 
 # https://www.twilio.com/docs/messaging/guides/webhook-request
 @router.post("/whatsapp-webhook")
@@ -32,7 +28,9 @@ async def handle_whatsapp_webhook(request: Request):
 
     log.info("Received WhatsApp message", body=payload.Body)
 
+    response_message = conversation_service.respond_to_message(payload.to_message())
+
     resp = MessagingResponse()
-    resp.message("Hello! Thank you for your message.")
+    resp.message(response_message.message)
 
     return Response(content=resp.to_xml(), media_type="application/xml")

@@ -33,15 +33,15 @@ class SQLiteChatRepository(ChatRepository):
             self.connection.execute('''
                 CREATE TABLE IF NOT EXISTS participants (
                     id INTEGER PRIMARY KEY AUTOINCREMENT
-                    , phone_number VARCHAR(20) NOT NULL
+                    , external_id VARCHAR(20) NOT NULL
                     , name VARCHAR(255) NOT NULL
                     , channel VARCHAR(50) NOT NULL
                 );
             ''')
 
             self.connection.execute('''
-                CREATE INDEX IF NOT EXISTS idx_participants_phone_number
-                ON participants (phone_number);
+                CREATE INDEX IF NOT EXISTS idx_participants_external_id
+                ON participants (external_id);
             ''')
             
             self.connection.execute('''
@@ -69,9 +69,9 @@ class SQLiteChatRepository(ChatRepository):
         with db_transaction(self.connection) as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO participants (phone_number, name, channel)
+                INSERT INTO participants (external_id, name, channel)
                 VALUES (?, ?, ?)
-            ''', (participant.phone_number, participant.name, participant.channel))
+            ''', (participant.external_id, participant.name, participant.channel))
             conn.commit()
             participant.id = cursor.lastrowid
         return participant
@@ -80,13 +80,13 @@ class SQLiteChatRepository(ChatRepository):
         with db_transaction(self.connection) as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                SELECT id, phone_number, name, channel
+                SELECT id, external_id, name, channel
                 FROM participants
-                WHERE phone_number = ? AND channel = ?
-            ''', (participant.phone_number,participant.channel))
+                WHERE external_id = ? AND channel = ?
+            ''', (participant.external_id, participant.channel))
             row = cursor.fetchone()
             if row:
-                return Participant(id=row[0], phone_number=row[1], name=row[2], channel=row[3])
+                return Participant(id=row[0], external_id=row[1], name=row[2], channel=row[3])
             return None
 
     def get_last_messages_to_participant(self, participant: Participant, n: int, datetime: datetime) -> list[Message]:

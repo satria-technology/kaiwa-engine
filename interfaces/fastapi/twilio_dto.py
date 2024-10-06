@@ -39,9 +39,9 @@ class WhatsappWebhookPayload(BaseModel):
 
     def __parse_to_participant(self, participant_str: str) -> Participant:
         try:
-            channel, phone_number = participant_str.split(":")
+            channel, external_id = participant_str.split(":")
             return Participant(
-                phone_number=phone_number,
+                external_id=external_id,
                 channel=channel,
                 name=""
             )

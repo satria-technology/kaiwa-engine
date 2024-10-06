@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 class Participant(BaseModel):
     id: Optional[str] = None
-    phone_number: str
+    external_id: str
     channel: str
     name: str
 

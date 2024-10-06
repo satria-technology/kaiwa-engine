@@ -1,6 +1,7 @@
 from utils.logging import log
 import os
 from dotenv import load_dotenv
+
 load_dotenv()
 
 from telegram import Update
@@ -15,6 +16,4 @@ app.add_handler(conversation_handler)
 
 log.info("Starting polling")
 
-app.run_polling(
-    allowed_updates=[Update.MESSAGE]
-)
+app.run_polling(allowed_updates=[Update.MESSAGE])

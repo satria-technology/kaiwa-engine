@@ -6,6 +6,8 @@ from domain.conversation.model import Message
 from domain.conversation.service import ConversationService
 
 log = structlog.get_logger()
+
+
 class ConversationServiceImp(ConversationService):
     def __init__(
         self,
@@ -17,7 +19,7 @@ class ConversationServiceImp(ConversationService):
 
     def respond_to_message(self, message: Message) -> Message:
         # TODO need to implement mutex with key message.sender
-        
+
         try:
             sender = self.chat_repository.get_participant(message.sender)
         except repository.ParticipantNotFoundError as e:
@@ -26,7 +28,8 @@ class ConversationServiceImp(ConversationService):
             log.error("Error getting sender", error=str(e), exc_info=True)
             raise e
         finally:
-            if sender is not None: message.sender = sender
+            if sender is not None:
+                message.sender = sender
 
         try:
             receiver = self.chat_repository.get_participant(message.receiver)
@@ -37,11 +40,14 @@ class ConversationServiceImp(ConversationService):
             log.error("Error getting receiver", error=str(e), exc_info=True)
             raise e
         finally:
-            if receiver is not None: message.receiver = receiver
+            if receiver is not None:
+                message.receiver = receiver
 
         try:
             context_messages = self.chat_repository.get_last_messages_to_participant(
-                message.sender, 10, datetime.datetime.now() - datetime.timedelta(hours=1)
+                message.sender,
+                10,
+                datetime.datetime.now() - datetime.timedelta(hours=1),
             )
 
             context_messages = [message] + context_messages
@@ -55,7 +61,7 @@ class ConversationServiceImp(ConversationService):
         except Exception as e:
             log.error("Error generating response", error=str(e), exc_info=True)
             raise e
-        
+
         self.__persist_message(message, response_message)
         return response_message
 

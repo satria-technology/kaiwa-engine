@@ -10,6 +10,7 @@ router = APIRouter(
 )
 log = structlog.get_logger()
 
+
 # https://www.twilio.com/docs/messaging/guides/webhook-request
 @router.post("/whatsapp-webhook")
 async def handle_whatsapp_webhook(request: Request):

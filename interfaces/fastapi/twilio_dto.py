@@ -40,11 +40,12 @@ class WhatsappWebhookPayload(BaseModel):
     def __parse_to_participant(self, participant_str: str) -> Participant:
         try:
             channel, external_id = participant_str.split(":")
-            return Participant(
-                external_id=external_id,
-                channel=channel,
-                name=""
-            )
+            return Participant(external_id=external_id, channel=channel, name="")
         except ValueError as e:
-            log.error("Invalid participant string", error=str(e), participant_str=participant_str, exc_info=True)
+            log.error(
+                "Invalid participant string",
+                error=str(e),
+                participant_str=participant_str,
+                exc_info=True,
+            )
             raise ValueError("Invalid participant string")

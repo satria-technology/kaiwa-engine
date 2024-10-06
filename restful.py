@@ -11,9 +11,15 @@ app = FastAPI(
     description="The API for Kaiwa Engine",
     version="1.0.0",
     servers=[
-        {"url": "https://54pzhk5t-8000.asse.devtunnels.ms", "description": "Local development server"},
-        {"url": "https://kaiwa-engine.satria.technology", "description": "Production server"},
-    ]
+        {
+            "url": "https://54pzhk5t-8000.asse.devtunnels.ms",
+            "description": "Local development server",
+        },
+        {
+            "url": "https://kaiwa-engine.satria.technology",
+            "description": "Production server",
+        },
+    ],
 )
 
 app.add_middleware(
@@ -23,6 +29,7 @@ app.add_middleware(
     allow_methods=["*"],  # Allow all methods
     allow_headers=["*"],  # Allow all headers
 )
+
 
 @app.get("/")
 def read_root():

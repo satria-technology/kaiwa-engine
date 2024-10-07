@@ -66,7 +66,7 @@ async def __cancel_handler(update: Update, context: CallbackContext):
 
 
 conversation_handler = ConversationHandler(
-    entry_points=[MessageHandler("start", __start_handler)],
+    entry_points=[CommandHandler("start", __start_handler)],
     states={
         __FREE_TEXT: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, __free_text_handler)

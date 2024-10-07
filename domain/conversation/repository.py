@@ -19,6 +19,10 @@ class ChatRepository(ABC):
     @abstractmethod
     def create_participant(self, participant: Participant):
         raise NotImplementedError
+    
+    @abstractmethod
+    def get_number_of_participants(self) -> int:
+        raise NotImplementedError
 
     @abstractmethod
     def get_participant(self, participant: Participant):

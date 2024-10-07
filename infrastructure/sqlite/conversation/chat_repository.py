@@ -97,6 +97,17 @@ class SQLiteChatRepository(ChatRepository):
             conn.commit()
             participant.id = cursor.lastrowid
         return participant
+    
+    def get_number_of_participants(self) -> int:
+        with db_transaction(self.connection) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT COUNT(*)
+                FROM participants
+            """
+            )
+            return int(cursor.fetchone()[0])
 
     def get_participant(self, participant: Participant):
         with db_transaction(self.connection) as conn:

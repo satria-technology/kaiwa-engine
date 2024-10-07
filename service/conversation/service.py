@@ -4,11 +4,16 @@ import structlog
 from domain.conversation import repository
 from domain.conversation.model import Message
 from domain.conversation.service import ConversationService
+import threading
 
 log = structlog.get_logger()
 
 
 class ConversationServiceImp(ConversationService):
+    __MAXIMUM_USER = 50
+    __MAXIMUM_CONTEXT_MINUTES = 30
+    __MAXIMUM_CONTEXT_COUNT = 20
+    
     def __init__(
         self,
         chat_repository: repository.ChatRepository,
@@ -16,13 +21,24 @@ class ConversationServiceImp(ConversationService):
     ):
         self.chat_repository = chat_repository
         self.llm_repository = llm_repository
+        self.locks = {}
 
     def respond_to_message(self, message: Message) -> Message:
-        # TODO need to implement mutex with key message.sender
+        sender_key = message.sender.external_id
 
+        if sender_key not in self.locks:
+            self.locks[sender_key] = threading.Lock()
+
+        mutex = self.locks[sender_key]
+        with mutex:
+            return self.__respond_to_message(message)
+    
+    def __respond_to_message(self, message: Message) -> Message:
         try:
             sender = self.chat_repository.get_participant(message.sender)
         except repository.ParticipantNotFoundError as e:
+            if self.chat_repository.get_number_of_participants() > self.__MAXIMUM_USER:
+                raise Exception("Maximum user reached")
             sender = self.chat_repository.create_participant(message.sender)
         except Exception as e:
             log.error("Error getting sender", error=str(e), exc_info=True)
@@ -46,9 +62,15 @@ class ConversationServiceImp(ConversationService):
         try:
             context_messages = self.chat_repository.get_last_messages_to_participant(
                 message.sender,
-                10,
-                datetime.datetime.now() - datetime.timedelta(hours=1),
+                self.__MAXIMUM_CONTEXT_COUNT,
+                datetime.datetime.now() - datetime.timedelta(minutes=self.__MAXIMUM_CONTEXT_MINUTES),
             )
+
+            if len(context_messages) > 1 and context_messages[1].sent_at < datetime.datetime.now() - datetime.timedelta(
+                seconds=30
+            ):
+                raise Exception("You are sending too many messages")
+
 
             context_messages = [message] + context_messages
             response_message_txt = self.llm_repository.generate_text(context_messages)

@@ -1,4 +1,5 @@
 import datetime
+import pytz
 
 import structlog
 from domain.conversation import repository
@@ -35,29 +36,23 @@ class ConversationServiceImp(ConversationService):
     
     def __respond_to_message(self, message: Message) -> Message:
         try:
-            sender = self.chat_repository.get_participant(message.sender)
+            message.sender = self.chat_repository.get_participant_by_external_id(message.sender.external_id, message.sender.channel)
         except repository.ParticipantNotFoundError as e:
             if self.chat_repository.get_number_of_participants() > self.__MAXIMUM_USER:
                 raise Exception("Maximum user reached")
-            sender = self.chat_repository.create_participant(message.sender)
+            message.sender = self.chat_repository.create_participant(message.sender)
         except Exception as e:
             log.error("Error getting sender", error=str(e), exc_info=True)
             raise e
-        finally:
-            if sender is not None:
-                message.sender = sender
 
         try:
-            receiver = self.chat_repository.get_participant(message.receiver)
+            message.receiver = self.chat_repository.get_participant_by_external_id(message.receiver.external_id, message.receiver.channel)
         except repository.ParticipantNotFoundError as e:
             message.receiver.name = "kaiwa"
-            receiver = self.chat_repository.create_participant(message.receiver)
+            message.receiver = self.chat_repository.create_participant(message.receiver)
         except Exception as e:
             log.error("Error getting receiver", error=str(e), exc_info=True)
             raise e
-        finally:
-            if receiver is not None:
-                message.receiver = receiver
 
         try:
             context_messages = self.chat_repository.get_last_messages_to_participant(
@@ -66,19 +61,20 @@ class ConversationServiceImp(ConversationService):
                 datetime.datetime.now() - datetime.timedelta(minutes=self.__MAXIMUM_CONTEXT_MINUTES),
             )
 
-            if len(context_messages) > 1 and context_messages[1].sent_at < datetime.datetime.now() - datetime.timedelta(
+            delta_time = datetime.datetime.now(pytz.utc) - datetime.timedelta(
                 seconds=30
-            ):
-                raise Exception("You are sending too many messages")
+            )
+            if len(context_messages) > 1 and context_messages[1].sent_at > delta_time:
+                raise Exception("You are sending too many messages, wait for 30 seconds from your last message")
 
 
             context_messages = [message] + context_messages
             response_message_txt = self.llm_repository.generate_text(context_messages)
             response_message = Message(
-                sender=message.sender,
-                receiver=message.receiver,
+                sender=message.receiver,
+                receiver=message.sender,
                 message=response_message_txt,
-                sent_at=datetime.datetime.now(),
+                sent_at=datetime.datetime.now(pytz.utc),
             )
         except Exception as e:
             log.error("Error generating response", error=str(e), exc_info=True)
@@ -87,7 +83,7 @@ class ConversationServiceImp(ConversationService):
         self.__persist_message(message, response_message)
         return response_message
 
-    async def __persist_message(self, incoming: Message, outcoming: Message):
+    def __persist_message(self, incoming: Message, outcoming: Message):
         try:
             self.chat_repository.save_messages([incoming, outcoming])
         except Exception as e:

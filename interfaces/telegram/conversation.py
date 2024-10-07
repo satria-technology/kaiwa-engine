@@ -30,7 +30,7 @@ def __parse_update_to_message(update: Update) -> Message:
     )
 
     receiver = Participant(
-        external_id=str(update.message.chat.id),  # Using chat_id as a unique identifier
+        external_id=str(update.message._bot.id),  # Using chat_id as a unique identifier
         channel="telegram",
         name="kaiwa",
     )
@@ -47,9 +47,13 @@ def __parse_update_to_message(update: Update) -> Message:
 
 async def __free_text_handler(update: Update, context: CallbackContext):
     message = __parse_update_to_message(update)
-    response_message = conversation_service.respond_to_message(message)
+    try:
+        response_message = conversation_service.respond_to_message(message)
+        resp = response_message.message
+    except Exception as e:
+        resp = str(e)
     await context.bot.send_message(
-        chat_id=update.effective_chat.id, text=response_message.message
+        chat_id=update.effective_chat.id, text=resp
     )
     return __FREE_TEXT
 
@@ -62,7 +66,7 @@ async def __cancel_handler(update: Update, context: CallbackContext):
 
 
 conversation_handler = ConversationHandler(
-    entry_points=[CommandHandler("start", __start_handler)],
+    entry_points=[MessageHandler("start", __start_handler)],
     states={
         __FREE_TEXT: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, __free_text_handler)

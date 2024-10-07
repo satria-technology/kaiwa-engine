@@ -1,10 +1,11 @@
 from contextlib import contextmanager
 from datetime import datetime
+from functools import lru_cache
 import sqlite3
 
 import structlog
 from domain.conversation.model import Message, Participant
-from domain.conversation.repository import ChatRepository
+from domain.conversation.repository import ChatRepository, ParticipantNotFoundError
 
 log = structlog.get_logger()
 
@@ -74,8 +75,8 @@ class SQLiteChatRepository(ChatRepository):
             """,
                 [
                     (
-                        msg.sender_id,
-                        msg.receiver_id,
+                        msg.sender.id,
+                        msg.receiver.id,
                         msg.message,
                         msg.sent_at.isoformat(),
                     )
@@ -96,7 +97,7 @@ class SQLiteChatRepository(ChatRepository):
             )
             conn.commit()
             participant.id = cursor.lastrowid
-        return participant
+            return participant
     
     def get_number_of_participants(self) -> int:
         with db_transaction(self.connection) as conn:
@@ -109,7 +110,7 @@ class SQLiteChatRepository(ChatRepository):
             )
             return int(cursor.fetchone()[0])
 
-    def get_participant(self, participant: Participant):
+    def get_participant_by_external_id(self, external_id: str, channel: str) -> Participant:
         with db_transaction(self.connection) as conn:
             cursor = conn.cursor()
             cursor.execute(
@@ -118,14 +119,33 @@ class SQLiteChatRepository(ChatRepository):
                 FROM participants
                 WHERE external_id = ? AND channel = ?
             """,
-                (participant.external_id, participant.channel),
+                (external_id, channel),
             )
             row = cursor.fetchone()
             if row:
                 return Participant(
                     id=row[0], external_id=row[1], name=row[2], channel=row[3]
                 )
-            return None
+            raise ParticipantNotFoundError
+    
+    @lru_cache(maxsize=128)
+    def __get_participant_by_id(self, id: int) -> Participant:
+        with db_transaction(self.connection) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT id, external_id, name, channel
+                FROM participants
+                WHERE id = ?
+            """,
+                (id,),
+            )
+            row = cursor.fetchone()
+            if row:
+                return Participant(
+                    id=row[0], external_id=row[1], name=row[2], channel=row[3]
+                )
+            raise ParticipantNotFoundError
 
     def get_last_messages_to_participant(
         self, participant: Participant, n: int, datetime: datetime
@@ -146,8 +166,8 @@ class SQLiteChatRepository(ChatRepository):
             return [
                 Message(
                     id=row[0],
-                    sender_id=row[1],
-                    receiver_id=row[2],
+                    sender=self.__get_participant_by_id(row[1]),
+                    receiver=self.__get_participant_by_id(row[2]),
                     message=row[3],
                     sent_at=datetime.fromisoformat(row[4]),
                 )

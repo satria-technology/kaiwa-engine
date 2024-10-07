@@ -25,7 +25,7 @@ class ChatRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_participant(self, participant: Participant):
+    def get_participant_by_external_id(self, external_id: str, channel: str) -> Participant:
         raise NotImplementedError
 
     @abstractmethod

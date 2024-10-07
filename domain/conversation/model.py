@@ -4,14 +4,14 @@ from pydantic import BaseModel
 
 
 class Participant(BaseModel):
-    id: Optional[str] = None
+    id: Optional[int] = None
     external_id: str
     channel: str
     name: str
 
 
 class Message(BaseModel):
-    id: Optional[str] = None
+    id: Optional[int] = None
     sender: Participant
     receiver: Participant
     message: str
